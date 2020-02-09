@@ -1,0 +1,27 @@
+{
+  "name": "svideo-stream",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon -e js,html,css",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IlyaLisitsin/svideo-stream.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/IlyaLisitsin/svideo-stream/issues"
+  },
+  "homepage": "https://github.com/IlyaLisitsin/svideo-stream#readme",
+  "dependencies": {
+    "https": "^1.0.0",
+    "websocket": "^1.0.31"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.2"
+  }
+}

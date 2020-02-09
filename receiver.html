@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <video controls></video>
+</body>
+<script>
+    const video = document.querySelector('video');
+    const connection = new WebSocket('ws://localhost:1212');
+
+    var myPeerConnection = new RTCPeerConnection({
+        iceServers: [
+            {
+                urls: "stun:stun.stunprotocol.org"
+            }
+        ]
+    });
+
+    myPeerConnection.onicecandidate = function (event) {
+        console.log('candi')
+        if (event.candidate) {
+            connection.send(JSON.stringify({
+                type: "new-ice-candidate",
+                target: 'sender',
+                candidate: event.candidate
+            }))
+        }
+    };
+    // myPeerConnection.ontrack = handleTrackEvent;
+    myPeerConnection.onnegotiationneeded = function () {
+        console.log('NEG NEEDED')
+    };
+
+    myPeerConnection.ontrack = function (event) {
+        console.log(event.streams[0].getTracks())
+        video.srcObject = event.streams[0];
+    };
+
+
+    // connection.send(JSON.stringify({
+    //     type: "new-ice-candidate",
+    //     target: 'receiver',
+    //     candidate: event.candidate
+    // }))
+
+    function handleTrackEvent(event) {
+        // document.getElementById("received_video").srcObject = event.streams[0];
+        // document.getElementById("hangup-button").disabled = false;
+
+        console.log(2342, event)
+    }
+
+    connection.onmessage = event => {
+        const message = JSON.parse(event.data);
+
+
+
+
+        switch (message.type) {
+            case 'video-offer':  // Invitation and offer to chat
+                handleVideoOfferMsg(message);
+                break;
+            case 'new-ice-candidate': // A new ICE candidate has been received
+                handleNewICECandidateMsg(message);
+                break;
+            default:
+                break;
+        }
+    };
+
+    async function handleNewICECandidateMsg(msg) {
+        var candidate = new RTCIceCandidate(msg.candidate);
+
+        console.log(candidate)
+
+        try {
+            await myPeerConnection.addIceCandidate(candidate)
+        } catch(err) {
+            reportError(err);
+        }
+    }
+    function handleVideoOfferMsg(message) {
+        console.log('VDIO')
+        // const targetUsername = msg.name;
+
+
+        console.log('MEssage sdp', message.sdp)
+
+        var desc = new RTCSessionDescription(message.sdp);
+
+        myPeerConnection.setRemoteDescription(desc)
+
+        // console.log(myPeerConnection.getRemoteStreams())
+        // video.srcObject = myPeerConnection.getRemoteStreams()[0]
+            .then(kek => {
+                // console.log(myPeerConnection.getLocalStreams())
+                // console.log(myPeerConnection.getRemoteStreams())
+                //
+                // video.srcObject = myPeerConnection.getRemoteStreams()[0];
+
+                myPeerConnection.createAnswer().then(kek => {
+                    return myPeerConnection.setLocalDescription(kek)
+                }).then(() => {
+                    connection.send(JSON.stringify({
+                        name: 'receiver',
+                        target: 'sender',
+                        type: "video-answer",
+                        sdp: myPeerConnection.localDescription
+                    }))
+                })
+            })
+        //     .then(function () {
+        //     return navigator.mediaDevices.getUserMedia(mediaConstraints);
+        // })
+        //     .then(function(stream) {
+        //         // console.log('stream', stream)
+        //         // const localStream = stream;
+        //         console.log(myPeerConnection)
+        //         console.log(myPeerConnection.getLocalStreams())
+        //         video.srcObject = myPeerConnection;
+        //
+        //         // localStream.getTracks().forEach(track => myPeerConnection.addTrack(track, localStream));
+        //     })
+
+    }
+
+</script>
+</html>

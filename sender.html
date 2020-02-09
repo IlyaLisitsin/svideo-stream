@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <video controls></video>
+</body>
+<script>
+    var video = document.querySelector('video');
+    const connection = new WebSocket('ws://localhost:1212');
+    let finalCnadidate;
+    let myPeerConnection;
+
+    connection.onmessage = async function (event) {
+        const message = JSON.parse(event.data);
+
+        switch (message.type) {
+            case 'video-answer':
+                var desc = new RTCSessionDescription(message.sdp);
+                await myPeerConnection.setRemoteDescription(desc).catch(reportError);
+
+                console.log(myPeerConnection)
+            }
+    }
+    navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+    }).then(returnedLocalStream => {
+        // localStream = returnedLocalStream;
+        video.srcObject = returnedLocalStream;
+        video.play();
+
+        myPeerConnection = new RTCPeerConnection({
+            iceServers: [
+                {
+                    urls: "stun:stun.stunprotocol.org"
+                }
+            ]
+        });
+
+        console.log(myPeerConnection)
+
+        myPeerConnection.onicecandidate = function (event) {
+            if (event.candidate) {
+                // finalCnadidate = event.candidate;
+
+                connection.send(JSON.stringify({
+                    type: "new-ice-candidate",
+                    target: 'receiver',
+                    // candidate: finalCnadidate,
+                    candidate: event.candidate,
+                }))
+            }
+
+
+        };
+        // myPeerConnection.ontrack = handleTrackEvent;
+        myPeerConnection.onnegotiationneeded = function () {
+            console.log('NEG NEEDED')
+            myPeerConnection.createOffer().then(function(offer) {
+                return myPeerConnection.setLocalDescription(offer);
+            })
+                .then(function() {
+                    connection.send(JSON.stringify({
+                        name: 'sender',
+                        target: 'receiver',
+                        type: 'video-offer',
+                        sdp: myPeerConnection.localDescription
+                    }));
+                })
+        };
+
+        returnedLocalStream.getTracks().forEach(track => myPeerConnection.addTrack(track, returnedLocalStream));
+    });
+
+    function reportError(err) {
+        console.log(`Oopsie dasie: ${err}`);
+    }
+
+</script>
+</html>
