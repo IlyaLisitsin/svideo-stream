@@ -14,7 +14,9 @@
     var myPeerConnection = new RTCPeerConnection({
         iceServers: [
             {
-                urls: "stun:stun.stunprotocol.org"
+                urls: ["turns:turnserver.example.org", "turn:turnserver.example.org"],
+                username: "webrtc",
+                credential: "turnpassword"
             }
         ]
     });
