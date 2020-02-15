@@ -10,21 +10,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     sendResponse({ farewell: "goodbye" });
 });
 
-// let myPeerConnection;
-//
-// const connection = new WebSocket('ws://localhost:1212');
-// connection.onmessage = async function (event) {
-//     const message = JSON.parse(event.data);
-//
-//     switch (message.type) {
-//         case 'video-answer':
-//             var desc = new RTCSessionDescription(message.sdp);
-//             await myPeerConnection.setRemoteDescription(desc).catch(reportError);
-//
-//             console.log(myPeerConnection)
-//     }
-// };
-//
+let myPeerConnection;
+
 const style = document.createElement('style');
 style.innerHTML = `
   .red {
@@ -52,52 +39,70 @@ document.querySelector('html').addEventListener('mouseout', e => {
 });
 
 function listen(e) {
-    console.log('hroock')
-//     if (e.target.tagName === 'VIDEO') {
-//         myPeerConnection = new RTCPeerConnection({
-//             iceServers: [
-//                 {
-//                     urls: ["turns:turnserver.example.org", "turn:turnserver.example.org"],
-//                     username: "webrtc",
-//                     credential: "turnpassword"
-//                 }
-//             ]
-//         });
-//
-//         myPeerConnection.onicecandidate = function (event) {
-//             if (event.candidate) {
-//                 connection.send(JSON.stringify({
-//                     type: "new-ice-candidate",
-//                     target: 'receiver',
-//                     candidate: event.candidate,
-//                 }))
-//             }
-//
-//
-//         };
-//
-//         myPeerConnection.onnegotiationneeded = function () {
-//             myPeerConnection.createOffer().then(function(offer) {
-//                 return myPeerConnection.setLocalDescription(offer);
-//             })
-//                 .then(function() {
-//                     connection.send(JSON.stringify({
-//                         name: 'sender',
-//                         target: 'receiver',
-//                         type: 'video-offer',
-//                         sdp: myPeerConnection.localDescription
-//                     }));
-//                 })
-//         };
-//
-//         e.target.captureStream().getTracks().forEach(track => myPeerConnection.addTrack(track, e.target.captureStream()));
-//     }
+    e.preventDefault();
+    if (e.target.tagName === 'VIDEO') {
+        const connection = new WebSocket('ws://localhost:1212');
+
+        connection.onmessage = async function (event) {
+            const message = JSON.parse(event.data);
+
+            switch (message.type) {
+                case 'video-answer':
+                    var desc = new RTCSessionDescription(message.sdp);
+                    await myPeerConnection.setRemoteDescription(desc).catch(reportError);
+
+                    console.log('video-answer', myPeerConnection)
+            }
+        };
+
+        connection.onopen = function () {
+            myPeerConnection = new RTCPeerConnection({
+                iceServers: [
+                    {
+                        urls: ["turns:turnserver.example.org", "turn:turnserver.example.org"],
+                        username: "webrtc",
+                        credential: "turnpassword"
+                    }
+                ]
+            });
+
+            myPeerConnection.onicecandidate = function (event) {
+                if (event.candidate) {
+                    connection.send(JSON.stringify({
+                        type: "new-ice-candidate",
+                        target: 'receiver',
+                        candidate: event.candidate,
+                    }))
+                }
+
+
+            };
+
+            myPeerConnection.onnegotiationneeded = function () {
+                myPeerConnection.createOffer().then(function(offer) {
+                    return myPeerConnection.setLocalDescription(offer);
+                })
+                    .then(function() {
+                        connection.send(JSON.stringify({
+                            name: 'sender',
+                            target: 'receiver',
+                            type: 'video-offer',
+                            sdp: myPeerConnection.localDescription
+                        }));
+                    })
+            };
+
+            const stream = e.target.captureStream();
+
+            stream.getTracks().forEach(track => myPeerConnection.addTrack(track, stream));
+        }
+    }
 }
-//
-// function reportError(err) {
-//     console.log(`Oopsie dasie: ${err}`);
-// }
-//
+
+function reportError(err) {
+    console.log(`Oopsie dasie: ${err}`);
+}
+
 //
 // navigator.mediaDevices.getUserMedia({
 //     video: true,

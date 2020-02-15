@@ -24,10 +24,15 @@ ws.on('request', req => {
     console.log('Connected ' + connection.remoteAddress);
 
     connection.on('message', message => {
-        console.log(message.utf8Data)
+        // console.log(message.utf8Data)
         // connections.slice(1).forEach(connection => connection.send(message.utf8Data))
         connections.forEach(connection => connection.send(message.utf8Data))
 
 
+    })
+
+    connection.on('close', kek => {
+        console.log(connections)
+        console.log(34, kek)
     })
 });
